@@ -245,10 +245,14 @@ clib_package_t *clib_package_load_from_manifest(const char *manifest,
                                                 int verbose) {
   clib_package_t *pkg = NULL;
 
+  // IMPORTANTE NOTA BENE
   if (-1 == fs_exists(manifest)) {
     logger_error("error", "Missing %s", manifest);
+    // Prova a togliere NULL e a invocare una funzione per iniettare un json corretto
     return NULL;
   }
+
+
 
   logger_info("info", "reading local %s", manifest);
 
@@ -376,6 +380,7 @@ static inline int install_packages(list_t *list, const char *dir, int verbose) {
     slug = clib_package_slug(dep->author, dep->name, dep->version);
     if (NULL == slug)
       goto loop_cleanup;
+    
 
     pkg = clib_package_new_from_slug(slug, verbose);
     if (NULL == pkg)
@@ -605,6 +610,7 @@ cleanup:
   return pkg;
 }
 
+// This is a very important function, in fact it creates a package and fetch from git the repo
 static clib_package_t *
 clib_package_new_from_slug_with_package_name(const char *slug, int verbose,
                                              const char *file) {
@@ -619,6 +625,8 @@ clib_package_new_from_slug_with_package_name(const char *slug, int verbose,
   http_get_response_t *res = NULL;
   clib_package_t *pkg = NULL;
   int retries = 3;
+  // Add: counter
+  // int count = 3;
 
   // parse chunks
   if (!slug)
@@ -639,6 +647,10 @@ clib_package_new_from_slug_with_package_name(const char *slug, int verbose,
   _debug("name: %s", name);
   _debug("version: %s", version);
 
+  // variable author, name, version, url, json_url are all initalized from
+  // the slug, so the github_nickname/package_name
+  // Important: json_url contains the URL of the manifest
+
 #ifdef HAVE_PTHREADS
   pthread_mutex_lock(&lock.mutex);
 #endif
@@ -651,6 +663,7 @@ clib_package_new_from_slug_with_package_name(const char *slug, int verbose,
 
     json = clib_cache_read_json(author, name, version);
 
+    // if there isn't the all package in cache it downloads it
     if (!json) {
       goto download;
     }
@@ -660,6 +673,7 @@ clib_package_new_from_slug_with_package_name(const char *slug, int verbose,
     pthread_mutex_unlock(&lock.mutex);
 #endif
   } else {
+    // This is a label: from here the code will fetch package.json
   download:
 #ifdef HAVE_PTHREADS
     pthread_mutex_unlock(&lock.mutex);
@@ -674,10 +688,19 @@ clib_package_new_from_slug_with_package_name(const char *slug, int verbose,
       http_get_free(res);
       res = http_get_shared(json_url, clib_package_curl_share);
 #else
+      // res contains the response from server at URL json_URL
       res = http_get(json_url);
 #endif
+      // res->data contains the data of the http response at URL
       json = res->data;
+      // add 
       _debug("status: %d", res->status);
+      // override "package.json or clib.json not found"
+      /*if (count-- == 0)
+      {
+          res->ok = 1;
+      }*/
+      // retry the http_get 3 times
       if (!res || !res->ok) {
         goto download;
       }
@@ -685,15 +708,29 @@ clib_package_new_from_slug_with_package_name(const char *slug, int verbose,
     }
   }
 
+  // if log = fetch: fetch : SimoStefa/zlib:package.json (example)
+  // ADD: if(json) if json was fetched correctly
+  //if (json)
+  //{
   if (verbose) {
-    logger_info(log, "%s/%s:%s", author, name, file);
+      logger_info(log, "%s/%s:%s", author, name, file);
   }
+  //}
+  // 
+  /*if (strcmp(json, "404: Not Found") == 0 && strcmp(file, "package.json") == 0)
+  {
+      logger_info("warning", "%s", "clib.json or package.json not found, creating it");
+      json = fs_read("/home/simone/package.json");
+  }*/
+
+  // if json == NULL add
 
   free(json_url);
   json_url = NULL;
   free(name);
   name = NULL;
 
+  // here if json != NULL it creates the pkg
   if (json) {
     // build package
     pkg = clib_package_new(json, verbose);
@@ -815,6 +852,33 @@ clib_package_t *clib_package_new_from_slug(const char *slug, int verbose) {
   } while (NULL != manifest_names[++i] && NULL == package);
 
   return package;
+}
+
+// ADD
+char *clib_package_url_withour_ver(const char *author, const char *name) {
+  if (!author || !name)
+    return NULL;
+  int size = strlen(GITHUB_CONTENT_URL) + strlen(author) + 1 // /
+             + strlen(name) + 1;  // /                          
+  
+  /*
+  if (0 != opts.token) {
+    size += strlen(opts.token);
+    size += 1; // @
+  } */
+
+  char *slug = malloc(size);
+  if (slug) {
+    memset(slug, '\0', size);
+    if (0 != opts.token) {
+      sprintf(slug, GITHUB_CONTENT_URL_WITH_TOKEN "%s/%s", opts.token,
+              author, name);
+    } else {
+      sprintf(slug, GITHUB_CONTENT_URL "%s/%s", author, name);
+    }
+  }
+
+  return slug;
 }
 
 /**
@@ -975,7 +1039,6 @@ static int fetch_package_file_work(clib_package_t *pkg, const char *dir,
 #ifdef HAVE_PTHREADS
     pthread_mutex_unlock(&lock.mutex);
 #endif
-
     rc = http_get_file_shared(url, path, clib_package_curl_share);
     saved = 1;
   } else {
@@ -1395,7 +1458,7 @@ int clib_package_install(clib_package_t *pkg, const char *dir, int verbose) {
     rc = -1;
     goto cleanup;
   }
-
+  // write to file json variable (contains the manifest)
   if (!opts.global && NULL != pkg->src) {
     _debug("write: %s", package_json);
     if (-1 == fs_write(package_json, pkg->json)) {
@@ -1489,7 +1552,7 @@ int clib_package_install(clib_package_t *pkg, const char *dir, int verbose) {
 #endif
 
 download:
-
+  // fetching source file from a list of source filenames
   iterator = list_iterator_new(pkg->src, LIST_HEAD);
   list_node_t *source;
 

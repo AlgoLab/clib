@@ -12,6 +12,11 @@
 #include "list/list.h"
 #include <curl/curl.h>
 
+// Data structures to represent a clib package
+// Includes:
+// - clib_package_t
+// - clib_package_dependency_t
+// - clib_package_opts_t
 typedef struct {
   char *name;
   char *author;
@@ -19,28 +24,29 @@ typedef struct {
 } clib_package_dependency_t;
 
 typedef struct {
-  char *author;
-  char *description;
+  char *author; // Repo author
+  char *description; // pkg description
   char *install;
   char *configure;
-  char *json;
+  char *json; // json text
   char *license;
   char *name;
   char *repo;
   char *repo_name;
-  char *url;
+  char *url; // URL della repo su github
   char *version;
-  char *makefile;
+  char *makefile; // path makefile 
   char *filename; // `package.json` or `clib.json`
   char *flags;
   char *prefix;
-  list_t *dependencies;
+  list_t *dependencies; // name list of dependencies
   list_t *development;
-  list_t *src;
+  list_t *src; // name list of sources
   void *data; // user data
   unsigned int refs;
 } clib_package_t;
 
+// Struct of clib package options
 typedef struct {
   int skip_cache;
   int force;
@@ -63,6 +69,8 @@ clib_package_t *clib_package_load_from_manifest(const char *, int);
 clib_package_t *clib_package_load_local_manifest(int);
 
 char *clib_package_url(const char *, const char *, const char *);
+
+char *clib_package_url_withour_ver(const char *author, const char *name);
 
 char *clib_package_url_from_repo(const char *repo, const char *version);
 
