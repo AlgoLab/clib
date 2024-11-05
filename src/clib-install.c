@@ -5,6 +5,10 @@
 // MIT licensed
 //
 
+// Aggiunti da me
+#include "common/clib-clone.h"
+
+// Standard
 #include "commander/commander.h"
 #include "common/clib-cache.h"
 #include "common/clib-package.h"
@@ -31,6 +35,9 @@
 #if defined(_WIN32) || defined(WIN32) || defined(__MINGW32__) ||               \
     defined(__MINGW64__)
 #define setenv(k, v, _) _putenv_s(k, v)
+
+// returns the full pathname
+// a is the buffer, b is the directory (if b == NULL, will be the current directory)
 #define realpath(a, b) _fullpath(a, b, strlen(a))
 #endif
 
@@ -59,10 +66,9 @@ static struct options opts = {0};
 static clib_package_opts_t package_opts = {0};
 static clib_package_t *root_package = NULL;
 
-/**
- * Option setters.
- */
-
+/*
+    Option setters.
+*/
 static void setopt_dir(command_t *self) {
   opts.dir = (char *)self->arg;
   debug(&debugger, "set dir: %s", opts.dir);
@@ -127,6 +133,7 @@ static void setopt_skip_cache(command_t *self) {
   debug(&debugger, "set skip cache flag");
 }
 
+// installa 
 static int install_local_packages_with_package_name(const char *file) {
   if (0 != clib_validate(file)) {
     return 1;
@@ -173,6 +180,8 @@ e1:
 /**
  * Install dependency packages at `pwd`.
  */
+
+// Function called in main
 static int install_local_packages() {
   const char *name = NULL;
   unsigned int i = 0;
@@ -249,6 +258,9 @@ static int save_dev_dependency(clib_package_t *pkg) {
  * Create and install a package from `slug`.
  */
 
+// Slug is in form:
+//
+// github_nickname/package_name
 static int install_package(const char *slug) {
   clib_package_t *pkg = NULL;
   int rc;
@@ -261,9 +273,15 @@ static int install_package(const char *slug) {
   long path_max = 4096;
 #endif
 
+// $ clib install .
+// calls install_local_packages() that install local packages if it finds manifest like 
+// {"clib.json", "package.json"}
   if ('.' == slug[0]) {
     if (1 == strlen(slug) || ('/' == slug[1] && 2 == strlen(slug))) {
       char dir[path_max];
+      // returns the full pathname
+      // if dir == NULL (char dir[path_max] is NULL always in this case),
+      // it returns pwd (current working directory)
       realpath(slug, dir);
       slug = dir;
       return install_local_packages();
@@ -286,6 +304,7 @@ static int install_package(const char *slug) {
     }
   }
 
+  // if pkg == NULL (in this case always) calls clib_package_new_from_slug(slug, opts.verbose)
   if (!pkg) {
     pkg = clib_package_new_from_slug(slug, opts.verbose);
   }
@@ -357,7 +376,9 @@ int main(int argc, char *argv[]) {
   debug_init(&debugger, "clib-install");
 
   // 30 days expiration
-  clib_cache_init(CLIB_PACKAGE_CACHE_TIME);
+
+  /* COMMENTATA IO*/
+  //clib_cache_init(CLIB_PACKAGE_CACHE_TIME);
 
   command_t program;
 
@@ -411,6 +432,17 @@ int main(int argc, char *argv[]) {
     char *json = NULL;
     unsigned int i = 0;
 
+    //
+    // Root package: this is the package where clib install in /deps the package
+    // that we specified in the argument(s):
+    // Ex: if we are in the directory
+    // home/username/my_project_clib
+    // and i call
+    // $ clib install SimoStefa/zlib
+    // this code will search for clib.json o package.json of my_project_clib
+    // json variable is the json of the project (!!!)
+    // package that I want to install will be installed later in main function
+    // 
     do {
       name = manifest_names[i];
       json = fs_read(name);
@@ -455,6 +487,42 @@ int main(int argc, char *argv[]) {
 #endif
 
   clib_package_set_opts(package_opts);
+
+  // Proviamo a vedere di usare una git clone
+  // 1) controlliamo che nella repo non ci siano né package.json né clib.json
+  
+  // if rc == NULL problem to allocate memory
+  // if rc[i] == -1: manifest not found -> git clone
+  // if rc[i] == 0: manifest found -> continue
+  // if rc[i] == 1: internet problem or general problem
+  int * rc = check_manifest_for_packages(program.argc, program.argv);
+  if (rc == NULL)
+  {
+      logger_error("error", "allocation memory failed");
+      free(rc);
+  }
+  else
+  {
+      for (int i = 0; i < program.argc; i++)
+      {
+          if (rc[i] == -1)
+          {
+              // package.json o clib.json non trovato
+              logger_warn("warning", "package.json or clib.json not found, git cloning");
+              // TODO: git clone
+              // TODO: take out from program.argv packages that haven't got package.json or clib.json
+          }
+          else if (rc[i] == 1)
+          {
+              logger_error("error", "internet problem")
+          }
+          else
+          {
+              // continue
+          }
+      }
+  }
+
 
   int code = 0 == program.argc ? install_local_packages()
                                : install_packages(program.argc, program.argv);
