@@ -29,6 +29,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_CHAR 200
+
 #define SX(s) #s
 #define S(s) SX(s)
 
@@ -59,6 +61,15 @@ struct options {
 #ifdef HAVE_PTHREADS
   unsigned int concurrency;
 #endif
+};
+
+// struct for every package
+// r: response from check_manifest_from_package()
+// pkg_name
+struct pkg
+{
+    int r;
+    char pkg_name[MAX_CHAR];
 };
 
 static struct options opts = {0};
@@ -488,6 +499,12 @@ int main(int argc, char *argv[]) {
 
   clib_package_set_opts(package_opts);
 
+  // declaring array pkg[program.argc] initalized to 0
+  // declaring n_clib_packages intialized to program.argc, it is a counter
+  // for clib designed packages
+  struct pkg pkgs[program.argc];
+  int n_clib_packages = program.argc;
+
   // Proviamo a vedere di usare una git clone
   // 1) controlliamo che nella repo non ci siano né package.json né clib.json
   
@@ -505,31 +522,52 @@ int main(int argc, char *argv[]) {
   {
       for (int i = 0; i < program.argc; i++)
       {
+          pkgs[i].r = rc[i];
+          strncpy(pkgs[i].pkg_name, "", 1);
+          strcpy(pkgs[i].pkg_name, program.argv[i]);
           if (rc[i] == -1)
           {
-              // package.json o clib.json non trovato
+              // package.json or clib.json not found
               logger_warn("warning", "package.json or clib.json not found, git cloning");
-              // TODO: git clone
-              // TODO: take out from program.argv packages that haven't got package.json or clib.json
+              int r = git_clone(pkgs[i].pkg_name);
+
+              n_clib_packages--;
           }
           else if (rc[i] == 1)
           {
               logger_error("error", "internet problem")
-          }
-          else
-          {
-              // continue
+              logger_error("error", "package %s not installed", pkgs[i].pkg_name);
+
+              n_clib_packages--;
           }
       }
   }
+  
+  // argv_clib_packages is an array that contains only packages name designed for
+  // clib, so we don't modify clib code 
+  // counter_pkgs is a counter for clib designed packages
+  char *arg_clib_packages[n_clib_packages];
+  int counter_pkgs = 0;
 
-
+  for (int i = 0; i < program.argc; i++)
+  {
+      if (pkgs[i].r == 0)
+      {
+          arg_clib_packages[counter_pkgs] = pkgs[i].pkg_name;
+          counter_pkgs++;
+      }
+  }
+  
+  // instead of install_packages(program.argc, program.argv),
+  // install_packages(n_clib_packages, arg_clib_packages)
+  // 
   int code = 0 == program.argc ? install_local_packages()
-                               : install_packages(program.argc, program.argv);
+                               : install_packages(n_clib_packages, arg_clib_packages);
 
   curl_global_cleanup();
   clib_package_cleanup();
 
   command_free(&program);
+  free(rc);
   return code;
 }
