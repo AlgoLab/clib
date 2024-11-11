@@ -8,6 +8,7 @@
 #define MAX_CHAR 100
 #define MAX_URL 200
 #define MAX_COMMAND 400
+#define MAX_PATH 800
 #define NOT_FOUND_GIT "404: Not Found"
 #define INVALID_REQUEST_GIT "400: Invalid Request"
 #define HOME_ENV_VARIABLE "HOME"
@@ -20,9 +21,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "clib-package.h"
 #include "http-get/http-get.h"
 #include "clib-clone.h"
+#include "logger/logger.h"
 
 // return a pointer to array of int (length: n) with responses
 // of check_manifest_online()
@@ -50,6 +55,7 @@ int *check_manifest_for_packages(int n,  char *pkgs[])
 
 // return 0 -> manifest found
 // return -1 -> manifest not found
+// return 1 -> http_get problem
 // ToDo: add control for clib.json
 int check_manifest_online(char *package_name_original)
 {
@@ -108,14 +114,66 @@ int check_manifest_online(char *package_name_original)
     return 1;
 }
 
+// if WEXITSTATUS == 0 -> git clone successfull
+// if WEXITSTATUS != 0 -> git clone unsuccessfull
+int fork_git(char *url_repo, char *path)
+{
+    pid_t pid = fork();
+
+    if (pid < 0)
+    {
+        // error to fork git
+        logger_error("error", "impossible to call git clone");
+        // 1 is a generic return error 
+        return 1;
+    }
+    else if (pid == 0)
+    {
+        // array with git clone args
+        char *arg[] = {"git", "clone", url_repo, path};
+
+        // Child process call: git
+        execvp(arg[0], arg);
+
+        // execvp never return if process success, if not returns 1
+        exit(EXIT_FAILURE);
+    }
+    else
+    {   
+        // Parent process
+        int status;
+
+        int r = waitpid(pid, &status, 0);
+
+        if (r == -1)
+        {
+            // generic error
+            return 1;
+        }
+
+        if (WIFEXITED(status))
+        {
+            // if WEXITSTATUS(status) = 0 no problem, if != 0 problem
+            return WEXITSTATUS(status);
+        }
+
+        // generic error (???)
+        return 1;
+    }
+}
+
 // git clone repo to /home/$USER/.cache/clib/packages
+// TODO: instead of /home/$USER/.cache/clib/packages, copy to something/root_project/deps/package_name
+// restriction: clib install SHOULD BE used in a clib project dir (so it should contain at least deps dir)
 // TODO: extract function to parse author and name from package_name_original
+// return 0 if success
 int git_clone(char *package_name_original)
 {
     char package_name[MAX_CHAR] = "";
 
     // build path to /home/$USER/.cache
-    char *path_cache = getenv(HOME_ENV_VARIABLE);
+    char path_cache[MAX_PATH] = "";
+    strcat(path_cache, getenv(HOME_ENV_VARIABLE));
     strcat(path_cache, "/.cache/clib/packages/");
 
     // mkdir for package_name clone
@@ -133,7 +191,7 @@ int git_clone(char *package_name_original)
         token = strtok(NULL, "/");
         strcat(name, token);
 
-    // name dir: author_name_version
+        // name dir: author_name_version
         char path_package_name[MAX_CHAR];
         strcat(path_package_name, author);
         strcat(path_package_name, "_");
@@ -154,26 +212,19 @@ int git_clone(char *package_name_original)
         strcat(url_repo, author);
         strcat(url_repo, "/");
         strcat(url_repo, name);
-        char command_git_clone[MAX_COMMAND] = "git clone ";
-        strcat(command_git_clone, url_repo);
-        strcat(command_git_clone, " ");
-        strcat(command_git_clone, path_cache);
+        
+        int r = fork_git(url_repo, path_cache);
 
-        system(command_git_clone);
+        return r;
     }
     else
     {
         // dir clib doesn't exist 
+        logger_error("error", "clib directory in /.cache not exist");
+
+        // TODO: create dir if not existing
+        return 1;
     }
 
+    return 0;
 }
-
-
-
-
-
-
-
-
-
-
