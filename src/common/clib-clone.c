@@ -18,6 +18,9 @@
     #define GITHUB_CONTENT_URL "https://raw.githubusercontent.com/"
 #endif
 
+// debug mkdir
+#include <errno.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -154,11 +157,13 @@ int fork_git(char *url_repo, char *path)
         if (WIFEXITED(status))
         {
             // if WEXITSTATUS(status) = 0 no problem, if != 0 problem
+            logger_info("info", "git terminated with %d", WEXITSTATUS(status))
             return WEXITSTATUS(status);
         }
-
-        // generic error (???)
-        return 1;
+        else
+        {
+            return 0;
+        }
     }
 }
 
@@ -196,13 +201,14 @@ int git_clone(char *package_name_original)
         strcat(path_package_name, author);
         strcat(path_package_name, "_");
         strcat(path_package_name, name);
-
+        
         strcat(path_cache, path_package_name); 
         // TODO: add version
-        if (mkdir(path_cache, S_IRWXU | S_IRWXG | S_IRWXO) == -1)
+        if (mkdir(path_cache, 0755) == -1)
         {
-            // error from mkdir
+            logger_error("error", "%s", strerror(errno));
             logger_error("error", "impossible to create %s dir", path_cache);
+            return -1;
         }
 
         // call git clone
@@ -223,7 +229,7 @@ int git_clone(char *package_name_original)
         logger_error("error", "clib directory in /.cache not exist");
 
         // TODO: create dir if not existing
-        return 1;
+        return -1;
     }
 
     return 0;

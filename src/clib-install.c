@@ -529,7 +529,19 @@ int main(int argc, char *argv[]) {
           {
               // package.json or clib.json not found
               logger_warn("warning", "package.json or clib.json not found, git cloning");
-              int r = git_clone(pkgs[i].pkg_name);
+              int response = git_clone(pkgs[i].pkg_name);
+
+              if (response >= 1)
+              {
+                  logger_error("error", "git calling failed");
+              }
+              else
+              if (response == -1)
+              {
+                  logger_error("error", 
+                               "impossible to create directories for %s package", 
+                               pkgs[i].pkg_name);
+              }
 
               n_clib_packages--;
           }

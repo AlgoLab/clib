@@ -24,7 +24,7 @@ HEADERS_BINS = src/common/*.h src/version.h deps/logger/logger.h
 
 export CC
 
-CFLAGS += -std=c99 -Ideps -Wall -Wno-unused-function -U__STRICT_ANSI__
+CFLAGS += -std=c99 -Ideps -Wall -Wno-unused-function -U__STRICT_ANSI__ -ggdb
 
 ifdef STATIC
 	CFLAGS  += -DCURL_STATICLIB  $(shell deps/curl/bin/curl-config --cflags)
