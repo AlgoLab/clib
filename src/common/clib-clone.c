@@ -133,7 +133,8 @@ int fork_git(char *url_repo, char *path)
     else if (pid == 0)
     {
         // array with git clone args
-        char *arg[] = {"git", "clone", url_repo, path};
+        // It must be NULL terminated
+        char *arg[] = {"git", "clone", url_repo, path, NULL};
 
         // Child process call: git
         execvp(arg[0], arg);
@@ -157,7 +158,6 @@ int fork_git(char *url_repo, char *path)
         if (WIFEXITED(status))
         {
             // if WEXITSTATUS(status) = 0 no problem, if != 0 problem
-            logger_info("info", "git terminated with %d", WEXITSTATUS(status))
             return WEXITSTATUS(status);
         }
         else
