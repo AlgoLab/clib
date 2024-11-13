@@ -191,10 +191,30 @@ int git_clone(char *package_name_original)
         // author/name
         char author[MAX_CHAR] = "";
         char name[MAX_CHAR] = "";
+        
+        // control if author and name != NULL
+        // and length of author and name != 0
         char * token = strtok(package_name, "/");
-        strcat(author, token);
-        token = strtok(NULL, "/");
-        strcat(name, token);
+        if (token != NULL && strnlen(token, MAX_CHAR) != 0)
+        {
+            // TODO: check for weird char
+            strcat(author, token);
+            token = strtok(NULL, "/");
+            if (token != NULL && strnlen(token, MAX_CHAR) != 0)
+            {
+                strcat(name, token);
+            }
+            else
+            {
+                // syntax error
+                return 2;
+            }
+        }
+        else
+        {
+            // syntax error
+            return 2;
+        }
 
         // name dir: author_name_version
         char path_package_name[MAX_CHAR];
