@@ -75,9 +75,29 @@ int check_manifest_online(char *package_name_original)
 
     // parsing package name author/name
     char * token = strtok(package_name, "/");
-    strcat(author, token);
-    token = strtok(NULL, "/");
-    strcat(name, token);
+
+    // TODO: strnlen of author != 0
+    if (token != NULL)
+    {
+        strcat(author, token);
+        token = strtok(NULL, "/");
+        // TODO: strnlen of name != 0
+        if (token != NULL )
+        {
+            strcat(name, token);
+        }
+        else
+        {
+            // syntax error
+            return 2;
+        }
+    }
+    else
+    {
+        // syntax error
+        return 2;
+    }
+
     
     // build url of repo without version
     char *url_repo = clib_package_url_withour_ver(author, name);
@@ -246,7 +266,7 @@ int git_clone(char *package_name_original)
     else
     {
         // dir clib doesn't exist 
-        logger_error("error", "clib directory in /.cache not exist");
+        logger_error("error", "clib directory in /.cache doesn't exist");
 
         // TODO: create dir if not existing
         return -1;
