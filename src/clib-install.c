@@ -525,14 +525,61 @@ int main(int argc, char *argv[]) {
           pkgs[i].r = rc[i];
           strncpy(pkgs[i].pkg_name, "", 1);
           strcpy(pkgs[i].pkg_name, program.argv[i]);
-          if (rc[i] == -1)
+
+          switch(rc[i])
+          {
+              case -1:	logger_warn("warning", 
+			  			"package.json or clib.json not found, git cloning");
+              			
+						int response = git_clone(pkgs[i].pkg_name);
+
+              			if (response >= 1)
+              			{
+                  			logger_error("error", 
+									 	"git calling failed");
+              			}
+              			else
+              			if (response == -1)
+              			{
+                  			logger_error("error", 
+                               			"impossible to create directories for %s package", 
+                               			pkgs[i].pkg_name);
+              			}
+
+              			n_clib_packages--;
+			  case 1:	logger_error("error", 
+			  						"internet problem");
+              			logger_error("error", 
+									"package %s not installed", 
+									pkgs[i].pkg_name);
+
+              			n_clib_packages--;
+			  case 2:	
+			  default:
+          }
+          /*if (rc[i] == -1)
           {
               // package.json or clib.json not found
               logger_warn("warning", "package.json or clib.json not found, git cloning");
               int response = git_clone(pkgs[i].pkg_name);
 
               if (response >= 1)
+              {logger_warn("warning", "package.json or clib.json not found, git cloning");
+              int response = git_clone(pkgs[i].pkg_name);
+
+              if (response >= 1)
               {
+                  logger_error("error", "git calling failed");
+              }
+              else
+              if (response == -1)
+              {
+                  logger_error("error", 
+                               "impossible to create directories for %s package", 
+                               pkgs[i].pkg_name);
+              }
+
+              n_clib_packages--;
                   logger_error("error", "git calling failed");
               }
               else
@@ -551,7 +598,7 @@ int main(int argc, char *argv[]) {
               logger_error("error", "package %s not installed", pkgs[i].pkg_name);
 
               n_clib_packages--;
-          }
+          }*/
       }
   }
   
