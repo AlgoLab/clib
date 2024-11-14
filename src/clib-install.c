@@ -369,44 +369,44 @@ int check_errors(int r, char *pkg_name)
 
     switch(r)
     {
-        case -1:	logger_warn("warning", 
-			  			    "package.json or clib.json not found for %s, git cloning",
-						      pkg_name);
-              			
-						      int response = git_clone(pkg_name);
+        case -1:    logger_warn("warning", 
+                    "package.json or clib.json not found for %s, git cloning",
+                    pkg_name);
+                        
+                    int response = git_clone(pkg_name);
 
-              		if (response >= 1)
-              		{
-                  		logger_error("error", 
-									 	  "git calling failed");
-              		}
-              		else if (response == -1)
-              		{
-                  		logger_error("error", 
-                      "impossible to create directories for %s package", 
-                      pkg_name);
-              		}
+                    if (response >= 1)
+                    {
+                        logger_error("error", 
+                        "git calling failed");
+                    }
+                    else if (response == -1)
+                    {
+                        logger_error("error", 
+                        "impossible to create directories for %s package", 
+                        pkg_name);
+                    }
 
-                  i = 1;
-				          break;
-			  case 1:	  logger_error("error", 
-			  					"internet problem");
-              		logger_error("error", 
-									"package %s not installed", 
-									pkg_name);
+                    i = 1;
+                    break;
+        case 1:     logger_error("error", 
+                    "internet problem");
+                    logger_error("error", 
+                    "package %s not installed", 
+                    pkg_name);
 
-                  i = 1;
-						      break;
-			  case 2:	  logger_error("error", 
-			  					"argument syntax error for %s package",
-									pkg_name);
+                    i = 1;
+                    break;
+        case 2:     logger_error("error", 
+                    "argument syntax error for %s package",
+                    pkg_name);
 
-                  i = 1;
-						      break;
-			  default:  logger_error("error",
-			  					"generic error");
+                    i = 1;
+                    break;
+        default:    logger_error("error",
+                    "generic error");
 
-                  i = 1;
+                    i = 1;
     }
 
     return i;
@@ -572,7 +572,7 @@ int main(int argc, char *argv[]) {
           pkgs[i].r = rc[i];
           strncpy(pkgs[i].pkg_name, "", 1);
           strcpy(pkgs[i].pkg_name, program.argv[i]);
-		      
+              
           int r = check_errors(rc[i], pkgs[i].pkg_name);
 
           // if there are errors n_clib_packages--
