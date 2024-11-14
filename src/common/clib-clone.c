@@ -237,7 +237,7 @@ int git_clone(char *package_name_original)
         }
 
         // name dir: author_name_version
-        char path_package_name[MAX_CHAR];
+        char path_package_name[MAX_CHAR] = "";
         strcat(path_package_name, author);
         strcat(path_package_name, "_");
         strcat(path_package_name, name);
