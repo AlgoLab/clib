@@ -363,6 +363,55 @@ static int install_packages(int n, char *pkgs[]) {
   return 0;
 }
 
+int check_errors(int r, char *pkg_name)
+{
+    int i = 0;
+
+    switch(r)
+    {
+        case -1:	logger_warn("warning", 
+			  			    "package.json or clib.json not found for %s, git cloning",
+						      pkg_name);
+              			
+						      int response = git_clone(pkg_name);
+
+              		if (response >= 1)
+              		{
+                  		logger_error("error", 
+									 	  "git calling failed");
+              		}
+              		else if (response == -1)
+              		{
+                  		logger_error("error", 
+                      "impossible to create directories for %s package", 
+                      pkg_name);
+              		}
+
+                  i = 1;
+				          break;
+			  case 1:	  logger_error("error", 
+			  					"internet problem");
+              		logger_error("error", 
+									"package %s not installed", 
+									pkg_name);
+
+                  i = 1;
+						      break;
+			  case 2:	  logger_error("error", 
+			  					"argument syntax error for %s package",
+									pkg_name);
+
+                  i = 1;
+						      break;
+			  default:  logger_error("error",
+			  					"generic error");
+
+                  i = 1;
+    }
+
+    return i;
+}
+
 /**
  * Entry point.
  */
@@ -523,45 +572,14 @@ int main(int argc, char *argv[]) {
           pkgs[i].r = rc[i];
           strncpy(pkgs[i].pkg_name, "", 1);
           strcpy(pkgs[i].pkg_name, program.argv[i]);
-		  
-          switch(rc[i])
+		      
+          int r = check_errors(rc[i], pkgs[i].pkg_name);
+
+          // if there are errors n_clib_packages--
+          // so the input for install_packages() is safe
+          if (r)
           {
-              case -1:	logger_warn("warning", 
-			  			"package.json or clib.json not found for %s, git cloning",
-						pkgs[i].pkg_name);
-              			
-						int response = git_clone(pkgs[i].pkg_name);
-
-              			if (response >= 1)
-              			{
-                  			logger_error("error", 
-									 	"git calling failed");
-              			}
-              			else if (response == -1)
-              			{
-                  			logger_error("error", 
-                               			"impossible to create directories for %s package", 
-                               			pkgs[i].pkg_name);
-              			}
-
-              			n_clib_packages--;
-						break;
-			  case 1:	logger_error("error", 
-			  						"internet problem");
-              			logger_error("error", 
-									"package %s not installed", 
-									pkgs[i].pkg_name);
-
-              			n_clib_packages--;
-						break;
-			  case 2:	logger_error("error", 
-			  						"argument syntax error for %s package",
-									pkgs[i].pkg_name);
-
-						n_clib_packages--;
-						break;
-			  default:  logger_error("error",
-			  						"generic error");
+              n_clib_packages--;
           }
       }
   }
