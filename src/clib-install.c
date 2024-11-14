@@ -504,14 +504,12 @@ int main(int argc, char *argv[]) {
   // for clib designed packages
   struct pkg pkgs[program.argc];
   int n_clib_packages = program.argc;
-
-  // Proviamo a vedere di usare una git clone
-  // 1) controlliamo che nella repo non ci siano né package.json né clib.json
   
   // if rc == NULL problem to allocate memory
   // if rc[i] == -1: manifest not found -> git clone
   // if rc[i] == 0: manifest found -> continue
   // if rc[i] == 1: internet problem or general problem
+  // if rc[i] == 2: argument syntax error
   int * rc = check_manifest_for_packages(program.argc, program.argv);
   if (rc == NULL)
   {
@@ -525,32 +523,45 @@ int main(int argc, char *argv[]) {
           pkgs[i].r = rc[i];
           strncpy(pkgs[i].pkg_name, "", 1);
           strcpy(pkgs[i].pkg_name, program.argv[i]);
-          if (rc[i] == -1)
+		  
+          switch(rc[i])
           {
-              // package.json or clib.json not found
-              logger_warn("warning", "package.json or clib.json not found, git cloning");
-              int response = git_clone(pkgs[i].pkg_name);
+              case -1:	logger_warn("warning", 
+			  			"package.json or clib.json not found for %s, git cloning",
+						pkgs[i].pkg_name);
+              			
+						int response = git_clone(pkgs[i].pkg_name);
 
-              if (response >= 1)
-              {
-                  logger_error("error", "git calling failed");
-              }
-              else
-              if (response == -1)
-              {
-                  logger_error("error", 
-                               "impossible to create directories for %s package", 
-                               pkgs[i].pkg_name);
-              }
+              			if (response >= 1)
+              			{
+                  			logger_error("error", 
+									 	"git calling failed");
+              			}
+              			else if (response == -1)
+              			{
+                  			logger_error("error", 
+                               			"impossible to create directories for %s package", 
+                               			pkgs[i].pkg_name);
+              			}
 
-              n_clib_packages--;
-          }
-          else if (rc[i] == 1)
-          {
-              logger_error("error", "internet problem")
-              logger_error("error", "package %s not installed", pkgs[i].pkg_name);
+              			n_clib_packages--;
+						break;
+			  case 1:	logger_error("error", 
+			  						"internet problem");
+              			logger_error("error", 
+									"package %s not installed", 
+									pkgs[i].pkg_name);
 
-              n_clib_packages--;
+              			n_clib_packages--;
+						break;
+			  case 2:	logger_error("error", 
+			  						"argument syntax error for %s package",
+									pkgs[i].pkg_name);
+
+						n_clib_packages--;
+						break;
+			  default:  logger_error("error",
+			  						"generic error");
           }
       }
   }
