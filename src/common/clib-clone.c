@@ -12,6 +12,7 @@
 #define NOT_FOUND_GIT "404: Not Found"
 #define INVALID_REQUEST_GIT "400: Invalid Request"
 #define HOME_ENV_VARIABLE "HOME"
+#define PWD_ENV_VARIABLE "PWD"
 #define GITHUB_REPO_URL "https://github.com/"
 
 #ifndef GITHUB_CONTENT_URL
@@ -187,26 +188,32 @@ int fork_git(char *url_repo, char *path)
     }
 }
 
-// git clone repo to /home/$USER/.cache/clib/packages
-// TODO: instead of /home/$USER/.cache/clib/packages, copy to something/root_project/deps/package_name
-// restriction: clib install SHOULD BE used in a clib project dir (so it should contain at least deps dir)
+// git clone repo to $PWD/deps/package_name
+// restriction: $PWD must be a clib project root dir (it must contain /deps dir)
 // TODO: extract function to parse author and name from package_name_original
 // return 0 if success
 int git_clone(char *package_name_original)
 {
     char package_name[MAX_CHAR] = "";
 
-    // build path to /home/$USER/.cache
+    // build path to -/project_root/deps/package_name
     char path_cache[MAX_PATH] = "";
-    strcat(path_cache, getenv(HOME_ENV_VARIABLE));
-    strcat(path_cache, "/.cache/clib/packages/");
+    
+    // install packages in  home/$USER/.cache/clib/packages
+    // ---------------------------------------------
+    // strcat(path_cache, getenv(HOME_ENV_VARIABLE));
+    // strcat(path_cache, "/.cache/clib/packages/");
 
-    // mkdir for package_name clone
+    // build path to -/project_root/deps/package_name
+    strncat(path_cache, getenv(PWD_ENV_VARIABLE), MAX_PATH);
+    strncat(path_cache, "/deps/", MAX_PATH);
+
+    // mkdir for package_name clone in /deps
     struct stat sb;
     if (stat(path_cache, &sb) == 0 && S_ISDIR(sb.st_mode))
     {
         // doesn't destroy original package_name
-        strcpy(package_name, package_name_original);
+        strncpy(package_name, package_name_original, MAX_CHAR);
 
         // author/name
         char author[MAX_CHAR] = "";
@@ -217,8 +224,7 @@ int git_clone(char *package_name_original)
         char * token = strtok(package_name, "/");
         if (token != NULL && strnlen(token, MAX_CHAR) != 0)
         {
-            // TODO: check for weird char
-            strcat(author, token);
+            strncat(author, token, MAX_CHAR);
             token = strtok(NULL, "/");
             if (token != NULL && strnlen(token, MAX_CHAR) != 0)
             {
@@ -236,13 +242,16 @@ int git_clone(char *package_name_original)
             return 2;
         }
 
-        // name dir: author_name_version
+        // name dir: author_name
+        // TODO: add version
         char path_package_name[MAX_CHAR] = "";
-        strcat(path_package_name, author);
-        strcat(path_package_name, "_");
-        strcat(path_package_name, name);
+
+        // strcat(path_package_name, author);
+        // strcat(path_package_name, "_");
+        // strcat(path_package_name, name);
         
-        strcat(path_cache, path_package_name); 
+        // name dir in /deps/: only name
+        strcat(path_cache, name); 
         // TODO: add version
         if (mkdir(path_cache, 0755) == -1)
         {
@@ -266,11 +275,136 @@ int git_clone(char *package_name_original)
     else
     {
         // dir clib doesn't exist 
-        logger_error("error", "clib directory in /.cache doesn't exist");
+        // logger_error("error", "clib directory in /.cache doesn't exist");
+
+        logger_error("error", "deps directory not exist, %s not a clib root project directory",
+        getenv(PWD_ENV_VARIABLE));
 
         // TODO: create dir if not existing
         return -1;
     }
 
+    return 0;
+}
+
+// ---------------------------------------
+// Parsing author, name, version functions
+// ---------------------------------------
+//
+// parsing author
+// return -1 if syntax error
+// return 2 general problem
+int cc_parse_author(char * package_name_original, char *author)
+{
+    char package_name[MAX_CHAR] = "";
+
+    strncat(package_name, package_name_original, MAX_CHAR);
+
+    char *token = strtok(package_name, "/");
+
+    if (token == NULL || strnlen(token, MAX_CHAR) == 0)
+    {
+        // syntax error
+        return 1;
+    }
+
+    if (author == NULL)
+    {
+        // problem with author
+        return 2;
+    }
+
+    strcat(author, token);
+
+    // ok
+    return 0;
+}
+
+// return -1 if there isn't version
+int cc_parse_name(char *package_name_original, char *name, int r)
+{
+    char package_name[MAX_CHAR] = "";
+
+    strncat(package_name, package_name_original, MAX_CHAR);
+
+    char *token = strtok(package_name, "/");
+
+    if (token == NULL || r != 0)
+    {   
+        // syntax error
+        return 1;
+    }
+
+    token = strtok(NULL, "/");
+    if (token == NULL || strnlen(token, MAX_CHAR) == 0)
+    {
+        // syntax error
+        return 1;
+    }
+    
+    char tmp[MAX_CHAR] = "";
+    strcat(tmp, token);
+
+    token = strtok(token, "@");
+    if (token == NULL)
+    {
+        // if author/name without version
+        strcat(name, tmp);
+        
+        // ok
+        return -1;
+    }
+    
+    // if author/name@version
+    strcat(name, token);
+    return ;
+}
+
+int cc_parse_version(char *package_name_original, char *version, int r)
+{
+    char package_name[MAX_CHAR] = "";
+
+    strncat(package_name, package_name_original, MAX_CHAR);
+
+    char *token = strtok(package_name, "/");
+
+    if (token == NULL || r != 0)
+    {   
+        // syntax error
+        return 1;
+    }
+
+    token = strtok(NULL, "/");
+    if (token == NULL || strnlen(token, MAX_CHAR) == 0)
+    {
+        // syntax error
+        return 1;
+    }
+    
+    char tmp[MAX_CHAR] = "";
+    strcat(tmp, token);
+
+    token = strtok(token, "@");
+    if (token == NULL)
+    {
+        // if author/name without version
+        return 2;
+    }
+
+    token = strtok(NULL, "@");
+
+    if (token == NULL)
+    {
+        // problem
+        return 1;
+    }
+
+    if (strnlen(token, MAX_CHAR) == 0)
+    {
+        return 1;
+    }
+
+    strcat(version, token);
+    // ok
     return 0;
 }
