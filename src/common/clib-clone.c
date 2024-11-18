@@ -218,37 +218,51 @@ int git_clone(char *package_name_original)
         // author/name
         char author[MAX_CHAR] = "";
         char name[MAX_CHAR] = "";
+        char version[MAX_URL] = "";
         
         // control if author and name != NULL
         // and length of author and name != 0
-        char * token = strtok(package_name, "/");
-        if (token != NULL && strnlen(token, MAX_CHAR) != 0)
-        {
-            strncat(author, token, MAX_CHAR);
-            token = strtok(NULL, "/");
-            if (token != NULL && strnlen(token, MAX_CHAR) != 0)
-            {
-                strcat(name, token);
-            }
-            else
-            {
-                // syntax error
-                return 2;
-            }
-        }
-        else
+        int r_auth = cc_parse_author(package_name_original, author);
+        if (r_auth > 0)
         {
             // syntax error
+            // remember to add generic error
             return 2;
         }
 
+        int r_name = cc_parse_name(package_name_original, name, r_auth);
+        if (r_name > 0)
+        {
+            // syntax error
+            // remember to add generic error
+            return 2;
+        }
+
+        if (r_name == 0)
+        {
+            int r_ver = cc_parse_version(package_name_original, version, r_name);
+        }
+        else
+        {
+            // there isn't in author/name a version
+        }
+
         // name dir: author_name
-        // TODO: add version
         char path_package_name[MAX_CHAR] = "";
 
         // strcat(path_package_name, author);
         // strcat(path_package_name, "_");
         // strcat(path_package_name, name);
+
+        // if there is a version, append the version
+        /*
+        if (strnlen(version, MAX_CHAR) > 0)
+        {
+            // author_name_version
+            strcat(path_package_name, "_");
+            strcat(path_package_name, version);
+        }
+        */
         
         // name dir in /deps/: only name
         strcat(path_cache, name); 
@@ -292,7 +306,7 @@ int git_clone(char *package_name_original)
 // ---------------------------------------
 //
 // parsing author
-// return -1 if syntax error
+// return 1 if syntax error
 // return 2 general problem
 int cc_parse_author(char * package_name_original, char *author)
 {
@@ -320,7 +334,10 @@ int cc_parse_author(char * package_name_original, char *author)
     return 0;
 }
 
-// return -1 if there isn't version
+// return 1 if syntax error
+// return 2 if there is a general problem
+// return -1 if ok and there isn't version
+// return 0 if ok and there is a version
 int cc_parse_name(char *package_name_original, char *name, int r)
 {
     char package_name[MAX_CHAR] = "";
@@ -328,6 +345,12 @@ int cc_parse_name(char *package_name_original, char *name, int r)
     strncat(package_name, package_name_original, MAX_CHAR);
 
     char *token = strtok(package_name, "/");
+
+    if (name == NULL)
+    {
+        // problem
+        return 2;
+    }
 
     if (token == NULL || r != 0)
     {   
@@ -357,9 +380,11 @@ int cc_parse_name(char *package_name_original, char *name, int r)
     
     // if author/name@version
     strcat(name, token);
-    return ;
+    return 0;
 }
 
+// return 1 if there is a syntax error
+// return 2 if there isn't a version
 int cc_parse_version(char *package_name_original, char *version, int r)
 {
     char package_name[MAX_CHAR] = "";
@@ -401,6 +426,7 @@ int cc_parse_version(char *package_name_original, char *version, int r)
 
     if (strnlen(token, MAX_CHAR) == 0)
     {
+        // problem
         return 1;
     }
 
