@@ -205,15 +205,15 @@ int git_clone(char *package_name_original)
     // strcat(path_cache, "/.cache/clib/packages/");
 
     // build path to -/project_root/deps/package_name
-    strncat(path_cache, getenv(PWD_ENV_VARIABLE), MAX_PATH);
-    strncat(path_cache, "/deps/", MAX_PATH);
+    strncat(path_cache, getenv(PWD_ENV_VARIABLE), MAX_PATH - 1);
+    strncat(path_cache, "/deps/", MAX_PATH - 1);
 
     // mkdir for package_name clone in /deps
     struct stat sb;
     if (stat(path_cache, &sb) == 0 && S_ISDIR(sb.st_mode))
     {
         // doesn't destroy original package_name
-        strncpy(package_name, package_name_original, MAX_CHAR);
+        strncpy(package_name, package_name_original, MAX_CHAR - 1);
 
         // author/name
         char author[MAX_CHAR] = "";
@@ -238,17 +238,20 @@ int git_clone(char *package_name_original)
             return 2;
         }
 
+        int r_ver;
         if (r_name == 0)
         {
-            int r_ver = cc_parse_version(package_name_original, version, r_name);
+            r_ver = cc_parse_version(package_name_original, version, r_name);
         }
-        else
+
+        if (r_ver > 0)
         {
-            // there isn't in author/name a version
+            // syntax error
+            return 2;
         }
 
         // name dir: author_name
-        char path_package_name[MAX_CHAR] = "";
+        // char path_package_name[MAX_CHAR] = "";
 
         // strcat(path_package_name, author);
         // strcat(path_package_name, "_");
@@ -312,7 +315,7 @@ int cc_parse_author(char * package_name_original, char *author)
 {
     char package_name[MAX_CHAR] = "";
 
-    strncat(package_name, package_name_original, MAX_CHAR);
+    strncat(package_name, package_name_original, MAX_CHAR - 1);
 
     char *token = strtok(package_name, "/");
 
@@ -342,7 +345,7 @@ int cc_parse_name(char *package_name_original, char *name, int r)
 {
     char package_name[MAX_CHAR] = "";
 
-    strncat(package_name, package_name_original, MAX_CHAR);
+    strncat(package_name, package_name_original, MAX_CHAR - 1);
 
     char *token = strtok(package_name, "/");
 
@@ -389,7 +392,7 @@ int cc_parse_version(char *package_name_original, char *version, int r)
 {
     char package_name[MAX_CHAR] = "";
 
-    strncat(package_name, package_name_original, MAX_CHAR);
+    strncat(package_name, package_name_original, MAX_CHAR - 1);
 
     char *token = strtok(package_name, "/");
 
