@@ -77,6 +77,14 @@ $ sudo make install
     help <cmd>           Display help for cmd
 ```
 
+Create a directory for your project. Create a deps dir for your dependencies.
+You can use
+
+```
+  clib init
+```
+to initialize in your directory your clib package (it creates a clib.json manifest for your clib project but you can omit this passage).
+
 ## clib install command
  
  This command must be executed in a clib project directory (it must contain /deps directory).
