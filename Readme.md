@@ -85,6 +85,20 @@ You can use
 ```
 to initialize in your directory your clib package (it creates a clib.json manifest for your clib project but you can omit this passage).
 
+Clib project root directory tree:
+
+```
+  .
+  ├── clib.json
+  ├── deps
+  │   └── dep_1
+  │       ├── dep_1.c
+  │       └── dep_1.h
+  └── src
+      ├── source_1.c
+      └── source_1.h
+```
+
 ## clib install command
  
  This command must be executed in a clib project directory (it must contain /deps directory).
