@@ -106,6 +106,16 @@ Clib project root directory tree:
  For non clib designed packages it creates in the package directory in /deps a manifest package.json
  that contains general information about the package: author, name and version.
 
+ Argument format is:
+```
+  author_repo/name_repo@version
+```
+
+Example:
+```
+  clib install madler/zlib@1.2
+```
+
 More about the Command Line Interface [here](https://github.com/clibs/clib/wiki/Command-Line-Interface).
 
 ## Examples
