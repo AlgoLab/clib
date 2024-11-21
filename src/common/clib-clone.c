@@ -9,15 +9,19 @@
 #define MAX_URL 200
 #define MAX_COMMAND 400
 #define MAX_PATH 800
+
 #define NOT_FOUND_GIT "404: Not Found"
 #define INVALID_REQUEST_GIT "400: Invalid Request"
+
 #define HOME_ENV_VARIABLE "HOME"
 #define PWD_ENV_VARIABLE "PWD"
-#define GITHUB_REPO_URL "https://github.com/"
 
+#define GITHUB_REPO_URL "https://github.com/"
 #ifndef GITHUB_CONTENT_URL
     #define GITHUB_CONTENT_URL "https://raw.githubusercontent.com/"
 #endif
+
+#define DEFAULT_VERSION "0.1.0"
 
 // debug mkdir
 #include <errno.h>
@@ -32,6 +36,8 @@
 #include "http-get/http-get.h"
 #include "clib-clone.h"
 #include "logger/logger.h"
+#include "parson/parson.h"
+#include "fs/fs.h"
 
 // return a pointer to array of int (length: n) with responses
 // of check_manifest_online()
@@ -67,44 +73,49 @@ int check_manifest_online(char *package_name_original)
     char package_name[MAX_CHAR];
     strcpy(package_name, package_name_original);
 
-    // author/name
+    // author/name@version
     char author[MAX_CHAR] = "";
     char name[MAX_CHAR] = "";
+    char version[MAX_CHAR] = "";
 
     // http_get request struct initialized to zero
     http_get_response_t *res = NULL;
 
     // parsing package name author/name
-    char * token = strtok(package_name, "/");
-
-    // TODO: strnlen of author != 0
-    if (token != NULL)
+    int r_auth = cc_parse_author(package_name_original, author);
+    if (r_auth > 0)
     {
-        strcat(author, token);
-        token = strtok(NULL, "/");
-        // TODO: strnlen of name != 0
-        if (token != NULL )
-        {
-            strcat(name, token);
-        }
-        else
-        {
-            // syntax error
-            return 2;
-        }
+        // syntax error
+        // remember to add generic error
+        return 2;
     }
-    else
+
+    int r_name = cc_parse_name(package_name_original, name, r_auth);
+    if (r_name > 0)
+    {
+        // syntax error
+        // remember to add generic error
+        return 2;
+    }
+
+    int r_ver;
+    if (r_name == 0)
+    {
+        r_ver = cc_parse_version(package_name_original, version, r_name);
+    }
+
+    if (r_ver != 0 && r_ver != 2)
     {
         // syntax error
         return 2;
     }
-
     
+    char url_repo[MAX_URL] = "";
     // build url of repo without version
-    char *url_repo = clib_package_url_withour_ver(author, name);
+    strncat(url_repo, clib_package_url_withour_ver(author, name), MAX_URL - 1);
 
     // build url of manifest (clib.json first, package.json second)
-    char tmp_url_package[MAX_URL];
+    char tmp_url_package[MAX_URL] = "";
     //char tmp_url_clib[MAX_URL];
 
     // master branch for package.json
@@ -188,6 +199,74 @@ int fork_git(char *url_repo, char *path)
     }
 }
 
+// return 1 if cannot open file
+// return 2 if there are a json problem
+// return 0 if it's ok
+int create_manifest(char *author, char *name, char *version, char *path)
+{
+    // name, author, version, clib_repo : 1 or 0
+    JSON_Value *root_value = json_value_init_object();
+    JSON_Object *root_object = json_value_get_object(root_value);
+
+    char *json_string = NULL;
+
+    json_object_set_string(root_object, "author", author);
+    json_object_set_string(root_object, "name", name);
+
+    if (version == NULL)
+    {
+        json_object_set_string(root_object, "version", DEFAULT_VERSION);
+    }
+    else
+    {
+        json_object_set_string(root_object, "version", version);
+    }
+
+    // 0 if repo isn't a clib repo
+    // this function is called when repo isn't a clib designed repo
+    json_object_set_number(root_object, "clib_repo", 0);
+
+    json_string = json_serialize_to_string_pretty(root_value);
+
+    FILE *fp;
+
+    const char manifest_name[] = "/package.json";
+    
+    // adding to path /package.json
+    char tmp_path[MAX_PATH] = "";
+    strncat(tmp_path, path, MAX_PATH - 1);
+    strncat(tmp_path, manifest_name, strlen(manifest_name));
+
+    // write mode: if not exist, create it
+    // if exist, recreate it
+    fp = fopen(tmp_path, "w");
+
+    if (fp == NULL)
+    {
+        // cannot open file
+        return 1;
+    }
+
+    if (json_string == NULL)
+    {
+        // json problem
+        fclose(fp);
+        return 2;
+    }
+    
+    // write to file json
+    fputs(json_string, fp);
+
+    // ok
+    fclose(fp);
+
+    logger_info("info", 
+    "manifest package.json for %s/%s succesfully created",
+    author, name);
+
+    return 0;
+}
+
 // git clone repo to $PWD/deps/package_name
 // restriction: $PWD must be a clib project root dir (it must contain /deps dir)
 // TODO: extract function to parse author and name from package_name_original
@@ -215,7 +294,7 @@ int git_clone(char *package_name_original)
         // doesn't destroy original package_name
         strncpy(package_name, package_name_original, MAX_CHAR - 1);
 
-        // author/name
+        // author/name@version
         char author[MAX_CHAR] = "";
         char name[MAX_CHAR] = "";
         char version[MAX_URL] = "";
@@ -244,7 +323,7 @@ int git_clone(char *package_name_original)
             r_ver = cc_parse_version(package_name_original, version, r_name);
         }
 
-        if (r_ver > 0)
+        if (r_ver != 0 && r_ver != 2)
         {
             // syntax error
             return 2;
@@ -272,8 +351,21 @@ int git_clone(char *package_name_original)
         // TODO: add version
         if (mkdir(path_cache, 0755) == -1)
         {
-            logger_error("error", "%s", strerror(errno));
-            logger_error("error", "impossible to create %s dir", path_cache);
+            // if dir already exist
+            // TODO: try mkdir with author_name
+            if (errno == EEXIST)
+            {
+                logger_error("error", "directory %s already existing", path_cache);
+                logger_error("error", "impossible to create %s dir", path_cache);
+            }
+            else
+            {
+                logger_error("error", "%s", strerror(errno));
+                logger_error("error", "impossible to create %s dir", path_cache);
+            }
+            
+            // logger_error("error", "%s", strerror(errno));
+            // logger_error("error", "impossible to create %s dir", path_cache);
             return -1;
         }
 
@@ -287,6 +379,27 @@ int git_clone(char *package_name_original)
         
         int r = fork_git(url_repo, path_cache);
 
+        int r_cm;
+        // if fork_git terminated succesfully
+        // create_manifest()
+        if (r == 0)
+        {
+            if (strlen(version) != 0)
+            {
+                r_cm = create_manifest(author, name, version, path_cache);
+            }
+            else
+            {
+                // if there isn't a version, pass NULL 
+                r_cm = create_manifest(author, name, NULL, path_cache);
+            }
+            if (r_cm > 0)
+            {
+                // error in creating the manifest
+                return -2;
+            }
+        }
+
         return r;
     }
     else
@@ -294,6 +407,7 @@ int git_clone(char *package_name_original)
         // dir clib doesn't exist 
         // logger_error("error", "clib directory in /.cache doesn't exist");
 
+        // not a clib root dir project
         logger_error("error", "deps directory not exist, %s not a clib root project directory",
         getenv(PWD_ENV_VARIABLE));
 
@@ -388,6 +502,7 @@ int cc_parse_name(char *package_name_original, char *name, int r)
 
 // return 1 if there is a syntax error
 // return 2 if there isn't a version
+// return if author/name@version
 int cc_parse_version(char *package_name_original, char *version, int r)
 {
     char package_name[MAX_CHAR] = "";
@@ -415,16 +530,16 @@ int cc_parse_version(char *package_name_original, char *version, int r)
     token = strtok(token, "@");
     if (token == NULL)
     {
-        // if author/name without version
-        return 2;
+        // problem
+        return 1;
     }
 
     token = strtok(NULL, "@");
 
     if (token == NULL)
     {
-        // problem
-        return 1;
+        // if author/name without version
+        return 2;
     }
 
     if (strnlen(token, MAX_CHAR) == 0)
@@ -437,3 +552,39 @@ int cc_parse_version(char *package_name_original, char *version, int r)
     // ok
     return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

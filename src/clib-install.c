@@ -386,6 +386,12 @@ int check_errors(int r, char *pkg_name)
                         "impossible to create directories for %s package", 
                         pkg_name);
                     }
+                    else if (response == -2)
+                    {
+                        logger_error("error",
+                        "impossible create manifest package.json for %s package",
+                        pkg_name);
+                    }
 
                     i = 1;
                     break;

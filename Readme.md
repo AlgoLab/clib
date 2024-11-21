@@ -24,10 +24,10 @@ $ sudo port selfupdate
 $ sudo port install clib
 ```
 
-  With git:
+  With git (cloning branch clone_git):
 
 ```sh
-$ git clone https://github.com/clibs/clib.git /tmp/clib
+$ git clone --branch clone_git https://github.com/clibs/clib.git /tmp/clib
 $ cd /tmp/clib
 $ make install
 ```
@@ -38,7 +38,7 @@ $ make install
 # install libcurl
 $ sudo apt-get install libcurl4-gnutls-dev -qq
 # clone
-$ git clone https://github.com/clibs/clib.git /tmp/clib && cd /tmp/clib
+$ git clone --branch clone_git https://github.com/clibs/clib.git /tmp/clib && cd /tmp/clib
 # build
 $ make
 # put on path
@@ -62,10 +62,7 @@ $ sudo make install
 ## About
 
   Basically the lazy-man's copy/paste promoting smaller C utilities, also
-  serving as a nice way to discover these sort of libraries. From my experience
-  C libraries are scattered all over the web and discovery is relatively poor. The footprint of these libraries is usually quite large and unfocused. The goal of `clibs` is to provide
-  stand-alone "micro" C libraries for developers to quickly install without coupling
-  to large frameworks.
+  serving as a nice way to discover these sort of libraries. Clib has a wiki where it gets his clib designed package (usually C small utilities). This clib fork can download and install non clib designed package from github. Actually, it can download every repository (written in C) from GitHub. It's aim is to be a general purpose package manager for every C library available on GitHub.
 
   You should use `clib(1)` to fetch these files for you and check them into your repository, the end-user and contributors should not require having `clib(1)` installed. This allows `clib(1)` to fit into any new or existing C workflow without friction.
 
@@ -92,6 +89,13 @@ $ sudo make install
     search [query]       Search for packages
     help <cmd>           Display help for cmd
 ```
+
+## clib install command
+ 
+ This command must be executed in a clib project directory (it must contain /deps directory).
+ It can download clib designed and non clib designed packages. 
+ For non clib designed packages it creates in the package directory in /deps a manifest package.json
+ that contains general information about the package: author, name and version.
 
 More about the Command Line Interface [here](https://github.com/clibs/clib/wiki/Command-Line-Interface).
 
@@ -151,6 +155,13 @@ $ clib install visionmedia/mon visionmedia/every visionmedia/watch
   "license": "MIT",
   "install": "make install"
 }
+```
+
+ Example of using Clib for a non clib designed package
+ (the command must be executed in a clib project dir (it must contain /deps dir)):
+
+```sh
+$ clib install madler/zlib
 ```
 
  See [explanation of clib.json](https://github.com/clibs/clib/wiki/Explanation-of-clib.json) for more details.
