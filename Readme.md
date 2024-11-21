@@ -11,23 +11,10 @@
 
   Expects [libcurl](http://curl.haxx.se/libcurl/) to be installed and linkable.
 
-  With [homebrew](https://github.com/Homebrew/homebrew):
-
-```sh
-$ brew install clib
-```
-
-  Or [MacPorts](https://www.macports.org):
-
-```sh
-$ sudo port selfupdate
-$ sudo port install clib
-```
-
   With git (cloning branch clone_git):
 
 ```sh
-$ git clone --branch clone_git https://github.com/clibs/clib.git /tmp/clib
+$ git clone --branch clone_git https://github.com/AlgoLab/clib /tmp/clib
 $ cd /tmp/clib
 $ make install
 ```
@@ -38,7 +25,7 @@ $ make install
 # install libcurl
 $ sudo apt-get install libcurl4-gnutls-dev -qq
 # clone
-$ git clone --branch clone_git https://github.com/clibs/clib.git /tmp/clib && cd /tmp/clib
+$ git clone --branch clone_git https://github.com/AlgoLab/clib /tmp/clib && cd /tmp/clib
 # build
 $ make
 # put on path
@@ -51,7 +38,7 @@ $ sudo make install
 # install libcurl
 $ sudo dnf install libcurl-devel
 # clone
-$ git clone https://github.com/clibs/clib.git /tmp/clib && cd /tmp/clib
+$ git clone --branch clone_git https://github.com/AlgoLab/clib /tmp/clib && cd /tmp/clib
 # build
 $ make
 # put on path
