@@ -77,7 +77,7 @@ $ sudo make install
     help <cmd>           Display help for cmd
 ```
 
-Create a directory for your project. Create a deps dir for your dependencies.
+Create a directory for your project. Create a dir called deps for your dependencies. Create a dir called src for your source files.
 You can use
 
 ```
