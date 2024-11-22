@@ -395,6 +395,7 @@ int check_errors(int r, char *pkg_name)
 
                     i = 1;
                     break;
+        case 0:     break;
         case 1:     logger_error("error", 
                     "internet problem");
                     logger_error("error", 
@@ -583,7 +584,7 @@ int main(int argc, char *argv[]) {
 
           // if there are errors n_clib_packages--
           // so the input for install_packages() is safe
-          if (r)
+          if (r != 0)
           {
               n_clib_packages--;
           }
