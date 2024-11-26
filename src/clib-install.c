@@ -4,8 +4,11 @@
 // Copyright (c) 2012-2020 clib authors
 // MIT licensed
 //
+// modified by:
+//    Author: Simone Stefanello
+// 
 
-// Aggiunti da me
+// added
 #include "common/clib-clone.h"
 
 // Standard
@@ -28,8 +31,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define MAX_CHAR 200
 
 #define SX(s) #s
 #define S(s) SX(s)
@@ -361,62 +362,6 @@ static int install_packages(int n, char *pkgs[]) {
     }
   }
   return 0;
-}
-
-int check_errors(int r, char *pkg_name)
-{
-    int i = 0;
-
-    switch(r)
-    {
-        case -1:    logger_warn("warning", 
-                    "package.json or clib.json not found for %s, git cloning",
-                    pkg_name);
-                        
-                    int response = git_clone(pkg_name);
-
-                    if (response >= 1)
-                    {
-                        logger_error("error", 
-                        "git calling failed");
-                    }
-                    else if (response == -1)
-                    {
-                        logger_error("error", 
-                        "impossible to create directories for %s package", 
-                        pkg_name);
-                    }
-                    else if (response == -2)
-                    {
-                        logger_error("error",
-                        "impossible create manifest package.json for %s package",
-                        pkg_name);
-                    }
-
-                    i = 1;
-                    break;
-        case 0:     break;
-        case 1:     logger_error("error", 
-                    "internet problem");
-                    logger_error("error", 
-                    "package %s not installed", 
-                    pkg_name);
-
-                    i = 1;
-                    break;
-        case 2:     logger_error("error", 
-                    "argument syntax error for %s package",
-                    pkg_name);
-
-                    i = 1;
-                    break;
-        default:    logger_error("error",
-                    "generic error");
-
-                    i = 1;
-    }
-
-    return i;
 }
 
 /**

@@ -3,8 +3,15 @@
 //
 // Copyright (c) 2012-2020 clib authors
 // MIT licensed
+// 
+// modified by:
+//    Author: Simone Stefanello
 //
 
+// added 
+#include "common/clib-clone.h"
+
+// standard
 #include "commander/commander.h"
 #include "common/clib-cache.h"
 #include "common/clib-package.h"
@@ -28,6 +35,7 @@
 #define SX(s) #s
 #define S(s) SX(s)
 
+
 #if defined(_WIN32) || defined(WIN32) || defined(__MINGW32__) ||               \
     defined(__MINGW64__)
 #define setenv(k, v, _) _putenv_s(k, v)
@@ -37,6 +45,12 @@
 extern CURLSH *clib_package_curl_share;
 
 debug_t debugger = {0};
+
+struct pkg
+{
+    int r;
+    char pkg_name[MAX_CHAR];
+};
 
 struct options {
   const char *dir;
@@ -82,6 +96,7 @@ static void setopt_dev(command_t *self) {
   opts.dev = 1;
   debug(&debugger, "set development flag");
 }
+
 
 #ifdef HAVE_PTHREADS
 static void setopt_concurrency(command_t *self) {
@@ -260,6 +275,118 @@ static int install_packages(int n, char *pkgs[]) {
   return 0;
 }
 
+int check_errors_update(int r, char *pkg_name)
+{
+    int i = 0;
+
+    // return 0: checked manifest and rm -rf dir ok
+    // return -1: package_name_original syntax error
+    // return -2: cannot open manifest package.json
+    // return -3: problem with json manifest or json object: clib_repo
+    // return -4: problem with name dir
+    // return -5: problem to erase dir
+    // return -6: problem with git cloning
+    // return -7: isn't a clib project directory
+    switch(r)
+    {
+        case 0:   logger_info("info",
+                  "updating %s package",
+                  pkg_name);
+                        
+                  char path[MAX_PATH] = "";
+                  char version[MAX_VER] = "";
+                  int response = git_clone(pkg_name, path, version);
+
+                  if (response >= 1)
+                  {
+                      logger_error("error", 
+                      "git calling failed");
+                  }
+                  else if (response == -1)
+                  {
+                      logger_error("error", 
+                      "impossible to create directories for %s package", 
+                      pkg_name);
+                  }
+                  else if (response == -2)
+                  {
+                      logger_error("error",
+                      "impossible create manifest package.json for %s package",
+                      pkg_name);
+                  }
+
+                  // change version using tags
+                  if (strnlen(path, MAX_PATH - 1) > 0)
+                  {
+                      if (strnlen(version, MAX_VER - 1) > 0)
+                      {
+                          // TODO: change version value in package.json
+                          int r = fork_checkout(path, version);
+
+                          if (r > 0)
+                          {
+                              logger_error("error",
+                              "impossible to select version %s for package %s",
+                              pkg_name, 
+                              version);
+                          }
+                          else
+                          {
+                              logger_info("info", 
+                              "version for %s package set to %s",
+                              pkg_name,
+                              version);
+                          }
+                      }
+                  }
+                  else
+                  {
+                      logger_error("error", 
+                      "impossible to update version for %s package",
+                      pkg_name);
+                  }
+
+                  i = 1;
+                  break;
+        // return -1: package_name_original syntax error
+        case -1:  logger_error("error",
+                  "argument %s syntax error",
+                  pkg_name);
+                  break;
+        // return -2: cannot open manifest package.json
+        case -2:  logger_error("error",
+                  "cannot open manifest for %s package",
+                  pkg_name);
+                  break;
+        // return -3: problem with json manifest or json object: clib_repo
+        // means that is a clib designed package
+        // so i = 0;
+        case -3:  break;
+        // return -4: problem with name dir
+        case -4:  logger_error("error",
+                  "problem with name directory");
+                  break;
+        // return -5: problem to erase dir
+        case -5:  logger_error("error",
+                  "impossible to remove directory for %s package",
+                  pkg_name);
+                  break;
+        // return -6: problem with git cloning
+        case -6:  logger_error("error",
+                  "problem with git cloning %s package",
+                  pkg_name);
+                  break;
+        // return -7: isn't a clib project directory
+        case -7:  logger_error("error",
+                  "current directory isn't a clib project directory");
+                  break;
+        default:  logger_error("error", 
+                  "generic problem");
+    }
+
+    return i;
+}
+
 /**
  * Entry point.
  */
@@ -303,6 +430,7 @@ int main(int argc, char *argv[]) {
                  setopt_dev);
   command_option(&program, "-t", "--token <token>",
                  "Access token used to read private content", setopt_token);
+  // adding -l --list to list all packages available in the clib root project directory
 #ifdef HAVE_PTHREADS
   command_option(&program, "-C", "--concurrency <number>",
                  "Set concurrency (default: " S(MAX_THREADS) ")",
@@ -366,12 +494,71 @@ int main(int argc, char *argv[]) {
 
   clib_package_set_opts(package_opts);
 
+  // check if in the package.json manifest there is clib_repo : 0 value
+  // if (clib_repo == 0)
+  //    git_clone()
+  // else
+  //    clib_code()
+
+  struct pkg pkgs[program.argc];
+  int n_clib_packages = program.argc;
+
+  // if clib update has arguments (argc != 0)
+  // if is_clib_repo returns 0 the argument associated isn't a clib_designed repo
+  // so the package installed in /deps contains package.json with the value clib_repo: 0
+  // In this case I call git_clone() to recloning the repo.
+
+  int *response;
+
+  if (program.argc != 0)
+  {
+      response = is_clib_repo(program.argc, program.argv);
+      if (response == NULL)
+      {
+          logger_error("error", "allocation memory failed");
+          free(response);
+      }
+      else
+      {
+          for (int i = 0; i < program.argc; i++)
+          {
+              pkgs[i].r = response[i];
+              strncpy(pkgs[i].pkg_name, "", 1);
+              strcpy(pkgs[i].pkg_name, program.argv[i]);
+              
+              int r = check_errors_update(response[i], pkgs[i].pkg_name);
+
+              // if there are errors n_clib_packages--
+              // so the input for install_packages() is safe
+              if (r != 0)
+              {
+                  n_clib_packages--;
+              }
+          }
+      }
+  }
+
+  // create safe arg vector and argc for original clib code 
+  char *arg_clib_packages[n_clib_packages];
+  int counter_pkgs = 0;
+
+  for (int i = 0; i < program.argc; i++)
+  {
+      if (pkgs[i].r == 0)
+      {
+          arg_clib_packages[counter_pkgs] = pkgs[i].pkg_name;
+          counter_pkgs++;
+      }
+  }
+
+  // safe arg vector and safe argc (arg_clib_packages and counter_pkgs)
   int code = 0 == program.argc ? install_local_packages()
-                               : install_packages(program.argc, program.argv);
+                               : install_packages(n_clib_packages, arg_clib_packages);
 
   curl_global_cleanup();
   clib_package_cleanup();
 
+  free(response);
   command_free(&program);
   return code;
 }
