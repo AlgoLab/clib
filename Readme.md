@@ -131,7 +131,7 @@ or
   author_repo/name@version
 ```
 
-If specified a version, clib will update to that specific version the package, otherwise it will install from scratch
+If specified a version, clib will update the package to that specific version, otherwise it will install from scratch
 to the latest version.
 
 More about the Command Line Interface [here](https://github.com/clibs/clib/wiki/Command-Line-Interface).
