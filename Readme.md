@@ -11,6 +11,8 @@
 
   Expects [libcurl](http://curl.haxx.se/libcurl/) to be installed and linkable.
 
+  Expects [ctags] (https://github.com/universal-ctags/ctags) to be installed.
+
   With git (cloning branch clone_git):
 
 ```sh
@@ -115,6 +117,22 @@ Example:
 ```
   clib install madler/zlib@1.2
 ```
+
+## clib update command
+
+This command must be executed in a clib project directory (it must contains /deps directory).
+It can update to a specific version an installed package or a non installed package. 
+The input accepted is:
+```
+  author_repo/name
+```
+or 
+```
+  author_repo/name@version
+```
+
+If specified a version, clib will update to that specific version the package, otherwise it will install from scratch
+to the latest version.
 
 More about the Command Line Interface [here](https://github.com/clibs/clib/wiki/Command-Line-Interface).
 
