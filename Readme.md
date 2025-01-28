@@ -9,11 +9,13 @@
 
 ## Installation
 
-  Expects [libcurl](http://curl.haxx.se/libcurl/) to be installed and linkable.
+  Dependencies:
+  
+   - Expects [libcurl](http://curl.haxx.se/libcurl/) to be installed and linkable.
 
-  Expects [ctags] (https://github.com/universal-ctags/ctags) to be installed.
+   - Expects [ctags] (https://github.com/universal-ctags/ctags) to be installed.
 
-  Expects [parallel] (can be installed with sudo apt install parallel) to be installed.
+   - Expects [parallel] (can be installed with sudo apt install parallel) to be installed.
 
   With git (cloning branch clone_git):
 
@@ -208,7 +210,7 @@ clib install
 }
 ```
 
-Example of a package.json of a deps not listen in the clib wiki
+Example of a package.json in a dependency directory not listed in the clib wiki
 
 ```json
 {
