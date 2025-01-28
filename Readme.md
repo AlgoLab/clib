@@ -13,6 +13,8 @@
 
   Expects [ctags] (https://github.com/universal-ctags/ctags) to be installed.
 
+  Expects [parallel] (can be installed with sudo apt install parallel) to be installed.
+
   With git (cloning branch clone_git):
 
 ```sh
@@ -163,6 +165,18 @@ $ clib install ms file hash
 ```sh
 $ clib install visionmedia/mon visionmedia/every visionmedia/watch
 ```
+## clib tag
+
+Clib tag is a command that adds for every directory in the deps directory, so dependency,
+the prefix "author_name_" (author and name of the dependency) to every function declared
+in every source file of the dependency. The aim of this command is to limit names conflicts
+of libraries using the standard of C community: adding the library prefix to the functions.
+It can be used from a clib project root directory: it adds prefix for every dependency installed 
+with 
+```
+clib install
+```
+
 
 ## clib.json
 
@@ -193,6 +207,17 @@ $ clib install visionmedia/mon visionmedia/every visionmedia/watch
   "install": "make install"
 }
 ```
+
+Example of a package.json of a deps not listen in the clib wiki
+
+```json
+{
+  "author": "samtools"
+  "name": "htslib",
+  "version": "0.1.0"
+}
+```
+
 
  Example of using Clib for a non clib designed package
  (the command must be executed in a clib project dir (it must contain /deps dir)):
