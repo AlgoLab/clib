@@ -36,17 +36,14 @@
 #include <errno.h>
 #include <fcntl.h>
 #include "clib-package.h"
+#include "clib-tag.h"
 #include "http-get/http-get.h"
 #include "clib-clone.h"
 #include "logger/logger.h"
 #include "parson/parson.h"
 #include "fs/fs.h"
 
-// functions declaration
-int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf);
-
-int rm_rf(char *path);
-
+// functions declaratios
 int check_local_manifest_and_rm_package(char *package_name_original);
 
 int *is_clib_repo(int n, char *pkgs[]);
@@ -161,6 +158,7 @@ int check_manifest_online(char *package_name_original)
     return 1;
 }
 
+// if r = -1, call git_clone
 int check_errors(int r, char *pkg_name)
 {
     int i = 0;
@@ -177,19 +175,64 @@ int check_errors(int r, char *pkg_name)
                     {
                         logger_error("error", 
                         "git calling failed");
+                        i = 1;
+                        break;
                     }
                     else if (response == -1)
                     {
                         logger_error("error", 
                         "impossible to create directories for %s package", 
                         pkg_name);
+                        i = 1;
+                        break;
                     }
                     else if (response == -2)
                     {
                         logger_error("error",
                         "impossible create manifest package.json for %s package",
                         pkg_name);
+                        i = 1;
+                        break;
                     }
+                    
+                    char author[MAX_CHAR] = "";
+                    char name[MAX_CHAR] = "";
+
+                    // here call function to add prefix to deps functions
+                    int r_author = cc_parse_author(pkg_name, author);
+                    
+                    if (r_author >= 1)
+                    {
+                        logger_error("error", "syntax error or general problem for package name");
+                        i = 1;
+                        break;
+                    }
+
+                    int r_name = cc_parse_name(pkg_name, name, r_author);
+
+                    if (r_name >= 1)
+                    {
+                        logger_error("error", "syntax error or general problem for package name");
+                        i = 1;
+                        break;
+                    }
+
+                    /*
+                    char deps_path[MAX_PATH] = "";
+                    strcpy(deps_path, getenv("PWD"));
+                    strcat(deps_path, "/deps");
+
+                    // check if /deps directory exist
+                    struct stat sb;
+
+                    if (stat(deps_path, &sb) == 0 && S_ISDIR(sb.st_mode))
+                    {
+                        find_dir(deps_path);
+                    }
+                    else
+                    {
+                        logger_error("error", "Cannot open %s.\n", deps_path);
+                    } */
 
                     i = 1;
                     break;
@@ -254,7 +297,8 @@ int fork_git(char *url_repo, char *path)
 
         // array with git clone args
         // It must be NULL terminated
-        char *arg[] = {"git", "clone", url_repo, path, NULL};
+        // added recurse submodules for submodules
+        char *arg[] = {"git", "clone", "--recurse-submodules", url_repo, path, NULL};
 
         // Child process call: git
         execvp(arg[0], arg);

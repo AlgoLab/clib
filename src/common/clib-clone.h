@@ -9,10 +9,14 @@
     #define MAX_CHAR 200
 #endif
 
-#define MAX_PATH 800
+#define MAX_PATH 1000
 #define MAX_VER 15
 
 struct pkg;
+
+int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf);
+
+int rm_rf(char *path);
 
 int *check_manifest_for_packages(int n, char *pkgs[]);
 

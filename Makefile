@@ -1,7 +1,7 @@
 CC     ?= cc
 PREFIX ?= /usr/local
 
-BINS = clib clib-install clib-search clib-init clib-configure clib-build clib-update clib-upgrade clib-uninstall
+BINS = clib clib-install clib-search clib-init clib-configure clib-build clib-update clib-upgrade clib-uninstall clib-tag
 
 ifdef EXE
 	BINS := $(addsuffix .exe,$(BINS))
