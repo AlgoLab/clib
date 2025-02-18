@@ -333,7 +333,15 @@ int fork_sed(char *path_to_source, char *path_to_modified, char *path_to_sed_scr
         } */
 
         // child process
+
+        
+        #if !defined(BSD) && !defined(__APPLE__)
+        // Ubuntu or Linux in general
         char *args[] = {"sed", "-f", path_to_sed_script, "-i", path_to_source, NULL};
+        #else
+        // Mac and BSD (add FreeBSD and OpenBSD)
+        char *args[] = {"sed", "-E", "-f", path_to_sed_script, "-i", "''", path_to_source, NULL};
+        #endif
 
         execvp(args[0], args);
 
@@ -606,13 +614,45 @@ int build_sed_script(Tag *tags, char *path_to_sed_script, int rows, char *author
             }
             strcat(substitute_command, "/#include/!");
             strcat(substitute_command, "s/");
+
+            #if !defined(BSD) && !defined(__APPLE__)
+            // Ubuntu or Linux in general
             strcat(substitute_command, "\\b");
+            #else
+            // Mac and BSD (add FreeBSD and OpenBSD)
+            strcat(substitute_command, "([^A-Za-z0-9_]|^)");
+            #endif
+
             strcat(substitute_command, tags[i].identifier);
+
+            #if !defined(BSD) && !defined(__APPLE__)
+            // Ubuntu or Linux in general
             strcat(substitute_command, "\\b");
+            #else
+            // Mac and BSD (add FreeBSD and OpenBSD)
+            strcat(substitute_command, "($|[^A-Za-z0-9_])");
+            #endif
+
             strcat(substitute_command, "/");
+
+            #if !defined(BSD) && !defined(__APPLE__)
+            // Nothing to add
+            #else
+            // Mac and BSD (add FreeBSD and OpenBSD)
+            strcat(substitute_command, "\1");
+            #endif
+
             strcat(substitute_command, prefix);
             strcat(substitute_command, "_");
             strcat(substitute_command, tags[i].identifier);
+
+            #if !defined(BSD) && !defined(__APPLE__)
+            // Nothing to add
+            #else
+            // Mac and BSD (add FreeBSD and OpenBSD)
+            strcat(substitute_command, "\2");
+            #endif
+            
             strcat(substitute_command, "/g");
             fprintf(fp, "%s\n", substitute_command);
             memset(substitute_command, 0, sizeof(substitute_command));
