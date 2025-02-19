@@ -4,11 +4,11 @@
     Description: implement a "namespace" by insert in every function identifier a prefix for the library,
                  used as an agreement in C programming. 
 */
-
+/*
 // for ntfw
 #define _GNU_SOURCE
 #define _XOPEN_SOURCE 500
-
+*/
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -142,7 +142,12 @@ int fork_ctags(char *functions_path,
         // calling ctags and format functions:
         //
         // {identifier}\t{line}\t{kind}
+	    #if !defined(BSD) && !defined(__FreeBSD__)
         char *arg[] = {"ctags", "-x", "--_xformat=%N\t%n\t%{kind}", path_to_source, NULL};
+	    #else
+	    char *arg[] = {"uctags", "-x", "--_xformat=%N\t%n\t%{kind}", path_to_source, NULL};
+	    #endif
+
         execvp(arg[0], arg);
 
         exit(EXIT_FAILURE);
@@ -335,7 +340,7 @@ int fork_sed(char *path_to_source, char *path_to_modified, char *path_to_sed_scr
         // child process
 
         
-        #if !defined(BSD) && !defined(__APPLE__)
+        #if !defined(BSD) && !defined(__APPLE__) && !defined(__FreeBSD__)
         // Ubuntu or Linux in general
         char *args[] = {"sed", "-f", path_to_sed_script, "-i", path_to_source, NULL};
         #else
@@ -615,44 +620,48 @@ int build_sed_script(Tag *tags, char *path_to_sed_script, int rows, char *author
             strcat(substitute_command, "/#include/!");
             strcat(substitute_command, "s/");
 
-            #if !defined(BSD) && !defined(__APPLE__)
+            #if !defined(BSD) && !defined(__APPLE__) && !defined(__FreeBSD__)
             // Ubuntu or Linux in general
             strcat(substitute_command, "\\b");
             #else
             // Mac and BSD (add FreeBSD and OpenBSD)
-            strcat(substitute_command, "([^A-Za-z0-9_]|^)");
+            strcat(substitute_command, "[[:<:]]");
             #endif
 
             strcat(substitute_command, tags[i].identifier);
 
-            #if !defined(BSD) && !defined(__APPLE__)
+            #if !defined(BSD) && !defined(__APPLE__) && !defined(__FreeBSD__)
             // Ubuntu or Linux in general
             strcat(substitute_command, "\\b");
             #else
             // Mac and BSD (add FreeBSD and OpenBSD)
-            strcat(substitute_command, "($|[^A-Za-z0-9_])");
+            strcat(substitute_command, "[[:>:]]");
             #endif
 
             strcat(substitute_command, "/");
 
-            #if !defined(BSD) && !defined(__APPLE__)
+/*
+            #if !defined(BSD) && !defined(__APPLE__) && !defined(__FreeBSD__)
             // Nothing to add
             #else
             // Mac and BSD (add FreeBSD and OpenBSD)
             strcat(substitute_command, "\1");
             #endif
+*/
 
             strcat(substitute_command, prefix);
             strcat(substitute_command, "_");
             strcat(substitute_command, tags[i].identifier);
 
-            #if !defined(BSD) && !defined(__APPLE__)
+/*
+            #if !defined(BSD) && !defined(__APPLE__) && !defined(__FreeBSD__)
             // Nothing to add
             #else
             // Mac and BSD (add FreeBSD and OpenBSD)
             strcat(substitute_command, "\2");
             #endif
-            
+*/          
+
             strcat(substitute_command, "/g");
             fprintf(fp, "%s\n", substitute_command);
             memset(substitute_command, 0, sizeof(substitute_command));
@@ -740,7 +749,7 @@ void find_dir(const char *path)
         // build path to tag function file
         char functions_path[MAX_PATH] = "";
         char functions[] = "functions";
-        snprintf(functions_path, sizeof(functions_path) + sizeof(functions), "%s/%s", dir_path, functions);
+        snprintf(functions_path, sizeof(functions_path), "%s/%s", dir_path, functions);
 
         int log_check = 0;
 
