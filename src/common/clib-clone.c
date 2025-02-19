@@ -9,10 +9,11 @@
 #define MAX_URL 200
 #define MAX_COMMAND 400
 
+/*
 // for ntfw
 #define _GNU_SOURCE
 #define _XOPEN_SOURCE 500
-
+*/
 #define NOT_FOUND_GIT "404: Not Found"
 #define INVALID_REQUEST_GIT "400: Invalid Request"
 
@@ -469,7 +470,7 @@ int git_clone(char *package_name_original, char *path, char *version_e)
 
         // if there is a version, append the version
         /*
-        if (strnlen(version, MAX_CHAR) > 0)
+        if (strlen(version) > 0)
         {
             // author_name_version
             strcat(path_package_name, "_");
@@ -534,7 +535,7 @@ int git_clone(char *package_name_original, char *path, char *version_e)
             {
                 // need path for check_errors_update in clib-update.c
                 strncat(path, path_cache, MAX_PATH - 1);
-                if (strnlen(version, MAX_VER) > 0)
+                if (strlen(version) > 0)
                 {
                     strncat(version_e, version, MAX_VER - 1);
                 }
@@ -574,7 +575,7 @@ int cc_parse_author(char * package_name_original, char *author)
 
     char *token = strtok(package_name, "/");
 
-    if (token == NULL || strnlen(token, MAX_CHAR) == 0)
+    if (token == NULL || strlen(token) == 0)
     {
         // syntax error
         return 1;
@@ -617,7 +618,7 @@ int cc_parse_name(char *package_name_original, char *name, int r)
     }
 
     token = strtok(NULL, "/");
-    if (token == NULL || strnlen(token, MAX_CHAR) == 0)
+    if (token == NULL || strlen(token) == 0)
     {
         // syntax error
         return 1;
@@ -659,7 +660,7 @@ int cc_parse_version(char *package_name_original, char *version, int r)
     }
 
     token = strtok(NULL, "/");
-    if (token == NULL || strnlen(token, MAX_CHAR) == 0)
+    if (token == NULL || strlen(token) == 0)
     {
         // syntax error
         return 1;
@@ -683,7 +684,7 @@ int cc_parse_version(char *package_name_original, char *version, int r)
         return 2;
     }
 
-    if (strnlen(token, MAX_CHAR) == 0)
+    if (strlen(token) == 0)
     {
         // problem
         return 1;
