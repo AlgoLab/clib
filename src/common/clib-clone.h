@@ -14,8 +14,6 @@
 
 struct pkg;
 
-int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf);
-
 int rm_rf(char *path);
 
 int *check_manifest_for_packages(int n, char *pkgs[]);

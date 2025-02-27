@@ -4,11 +4,7 @@
     Description: implement a "namespace" by insert in every function identifier a prefix for the library,
                  used as an agreement in C programming. 
 */
-/*
-// for ntfw
-#define _GNU_SOURCE
-#define _XOPEN_SOURCE 500
-*/
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -30,22 +26,6 @@
 #define SOURCE_PREFIX "m_"
 
 #define LOG_MESSAGE_ADDED_PREFIX "Added prefix.\n"
-
-// used to remove temp and functions tags file 
-/*int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
-{
-    int rv = remove(fpath);
-
-    if (rv)
-        perror(fpath);
-
-    return rv;
-}
-
-int rm_rf(char *path)
-{
-    return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
-}*/
 
 // used to cpy the modified source content in a temp file
 int cpy(char *fnDest, char *fnSrc)

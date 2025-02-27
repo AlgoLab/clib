@@ -9,11 +9,6 @@
 #define MAX_URL 200
 #define MAX_COMMAND 400
 
-/*
-// for ntfw
-#define _GNU_SOURCE
-#define _XOPEN_SOURCE 500
-*/
 #define NOT_FOUND_GIT "404: Not Found"
 #define INVALID_REQUEST_GIT "400: Invalid Request"
 
@@ -789,7 +784,7 @@ int check_local_manifest_and_rm_package(char *package_name_original)
 
         struct stat sb1;
         if (stat(path, &sb1) == 0 && S_ISDIR(sb.st_mode))
-        {  
+        {
             int r = rm_rf(path);
 
             if (r != 0)
@@ -835,20 +830,47 @@ int *is_clib_repo(int n, char *pkgs[])
     return res;
 }
 
-int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
-{
-    int rv = remove(fpath);
-
-    if (rv)
-        perror(fpath);
-
-    return rv;
-}
-
 int rm_rf(char *path)
 {
-    return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
-}
+    pid_t pid = fork();
+
+    if (pid < 0)
+    {
+        printf("Errore remove del path: %s.\n", path);
+        return -1;
+    }
+    else
+    if (pid == 0)
+    {
+        char *args[] = {"rm", "-rf", path, NULL};
+
+        execvp(args[0], args);
+
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        int status;
+
+        int r = waitpid(pid, &status, 0);
+
+        if (r == -1)
+        {
+            // generic error
+            return 1;
+        }
+
+        if (WIFEXITED(status))
+        {
+            // if WEXITSTATUS(status) = 0 no problem, if != 0 problem
+            return WEXITSTATUS(status);
+        }
+        else
+        {
+            return 0;
+        }
+    }
+} 
 
 // array with git clone args
 // It must be NULL terminated
