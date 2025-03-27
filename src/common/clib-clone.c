@@ -130,7 +130,7 @@ int check_manifest_online(char *package_name_original)
     // http_get request
     res = http_get(tmp_url_package);
 
-    if (res == NULL)
+    if (res == NULL || res->data == NULL)
     {
         // Problem with http_get
         return 1;
@@ -139,6 +139,7 @@ int check_manifest_online(char *package_name_original)
     // res->data == "404: Not Found" or "400: Invalid Request"
     // NB: it is possible to automatically check this error throw res->status
     // package.json not found
+
     if (strcmp(res->data, NOT_FOUND_GIT) == 0 || 
         strcmp(res->data, INVALID_REQUEST_GIT) == 0)
     {
