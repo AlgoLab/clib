@@ -407,7 +407,7 @@ void find_dir(const char *path)
             for file do
                 grep -o -f tag_functions_uniq "$file" |
                 while read sym; do
-                    sed "/#include/!s/\\<${sym}\\>/name_dep_author_dep_${sym}/g" "$file" > "$file.tmp" &&
+                    sed "/#include/!s/[[:<:]]${sym}[[:>:]]/name_dep_author_dep_${sym}/g" "$file" > "$file.tmp" &&
                     mv "$file.tmp" "$file"
                 done
             done
@@ -416,7 +416,7 @@ void find_dir(const char *path)
         fprintf(fp, "\tfor file do\n");
         fprintf(fp, "\t\tgrep -o -f %s \"$file\" |\n", functions_uniq_path);
         fprintf(fp, "\t\twhile read sym; do\n");
-        fprintf(fp, "\t\t\tsed \"/#include/!s/\\\<${sym}\\\>/%s_%s_${sym}/g\" \"$file\"", author_dep, name_dep);
+        fprintf(fp, "\t\t\tsed \"/#include/!s/[[:<:]]${sym}[[:>:]]/%s_%s_${sym}/g\" \"$file\"", author_dep, name_dep);
         fprintf(fp, " > \"$file.tmp\" && mv \"$file.tmp\" \"$file\"\n");
         fprintf(fp, "\t\tdone\n");
         fprintf(fp, "\tdone\n");
