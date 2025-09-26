@@ -305,11 +305,11 @@ void find_dir(const char *path)
         // build path to tag function file and tag functions without internal repetitions
         // adding 2 for snprintf because of / and the terminal char
         char functions[] = "functions";
-        char functions_path[MAX_PATH + sizeof(functions)] = "";
+        char functions_path[MAX_PATH + sizeof(functions) + 2] = "";
         snprintf(functions_path, sizeof(dir_path) + sizeof(functions) + 2, "%s/%s", dir_path, functions);
 
         char functions_uniq[] = "functions_uniq";
-        char functions_uniq_path[MAX_PATH + sizeof(functions_uniq)] = "";
+        char functions_uniq_path[MAX_PATH + sizeof(functions_uniq) + 2] = "";
         snprintf(functions_uniq_path, sizeof(dir_path) + sizeof(functions_uniq) + 2, "%s/%s", dir_path, functions_uniq);
 
         int log_check = 0;
