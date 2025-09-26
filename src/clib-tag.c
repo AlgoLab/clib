@@ -368,7 +368,7 @@ void find_dir(const char *path)
         #if !defined(BSD) && !defined(__FreeBSD__) && !defined(__APPLE__)
         fprintf(fp, "sed -i '/\\bmain\\b/d' %s\n", functions_uniq_path);
         #else
-        fprintf(fp, "sed -i '' '/\\<main\\>/d' %s\n", functions_uniq_path);
+        fprintf(fp, "sed -i '' '/[[:<:]]main[[:>:]]/d' %s\n", functions_uniq_path);
         #endif
         fprintf(fp, "rm %s", functions_path);
 
