@@ -67,7 +67,7 @@ int fork_ctags(char *functions_path,
         // calling ctags and format functions:
         //
         // only functions names
-	    #if !defined(BSD) && !defined(__FreeBSD__) && !defined(__APPLE__)
+	    #if !defined(BSD) && !defined(__FreeBSD__)
         char *arg[] = {"ctags", "-x", "--kinds-C=f", "--_xformat=%N", path_to_source, NULL};
 	    #else
 	    char *arg[] = {"uctags", "-x", "--kinds-C=f", "--_xformat=%N", path_to_source, NULL};
