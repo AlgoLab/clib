@@ -403,24 +403,24 @@ void find_dir(const char *path)
         fprintf(fp, "\tdone\n");
         fprintf(fp, "' sh {} +\n");
         #else
-        /*find . -name "*.[ch]" -exec sh -c '
+        /*find . -name "*.[ch]" -exec bash -c '
             for file do
-                grep -o -f tag_functions_uniq "$file" |
-                while read sym; do
-                    sed "/#include/!s/[[:<:]]${sym}[[:>:]]/name_dep_author_dep_${sym}/g" "$file" > "$file.tmp" &&
-                    mv "$file.tmp" "$file"
-                done
+              grep -o -f functions_uniq "$file" | sort -u > "$file.syms"
+              awk -v p="author_dep_name_dep_" \
+              "{print \"/#include/!s/[[:<:]]\" \$1 \"[[:>:]]/\" p \$1 \"/g\"}" "$file.syms" > regole.sed
+              sed -f regole.sed "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+              rm -f "$file.syms" regole.sed "$file.tmp"
             done
-        ' sh {} +*/
-        fprintf(fp, "find %s -name \"*.[ch]\" -exec sh -c \'\n", dir_path);
+        ' bash {} +*/
+        fprintf(fp, "find %s -name \"*.[ch]\" -exec bash -c \'\n", dir_path);
         fprintf(fp, "\tfor file do\n");
-        fprintf(fp, "\t\tgrep -o -f %s \"$file\" |\n", functions_uniq_path);
-        fprintf(fp, "\t\twhile read sym; do\n");
-        fprintf(fp, "\t\t\tsed \"/#include/!s/[[:<:]]${sym}[[:>:]]/%s_%s_${sym}/g\" \"$file\"", author_dep, name_dep);
-        fprintf(fp, " > \"$file.tmp\" && mv \"$file.tmp\" \"$file\"\n");
-        fprintf(fp, "\t\tdone\n");
+        fprintf(fp, "\t\tgrep -o -f %s \"$file\" | sort -u > \"$file.syms\"\n", functions_uniq_path);
+        fprintf(fp, "\t\tawk -v p=\"%s_%s\" \\ \n", author_dep, name_dep);
+        fprintf(fp, "\t\t\"{print \"/#include/!s/[[:<:]]\" \\$1 \"[[:>:]]/\" p \\$1 \"/g\"}\" \"$file.syms\" > regole.sed\n");
+        fprintf(fp, "\t\tsed -f regole.sed \"$file\" > \"$file.tmp\" && mv \"$file.tmp\" \"$file\"\n");
+        fprintf(fp, "\t\trm -f \"$file.syms\" regole.sed \"$file.tmp\"\n");
         fprintf(fp, "\tdone\n");
-        fprintf(fp, "\' sh {} +\n");
+        fprintf(fp, "\' bash {} +");
         #endif
 
         fclose(fp);
