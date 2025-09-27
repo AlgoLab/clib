@@ -403,16 +403,24 @@ void find_dir(const char *path)
         fprintf(fp, "\tdone\n");
         fprintf(fp, "' sh {} +\n");
         #else
-        /*find . -name "*.[ch]" -exec bash -c '
-            for file do
-              grep -o -f functions_uniq "$file" | sort -u > "$file.syms"
-              awk -v p="author_dep_name_dep_" \
-              "{print \"/#include/!s/[[:<:]]\" \$1 \"[[:>:]]/\" p \$1 \"/g\"}" "$file.syms" > regole.sed
-              sed -f regole.sed "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-              rm -f "$file.syms" regole.sed "$file.tmp"
-            done
-        ' bash {} +*/
-        fprintf(fp, "find %s -name \"*.[ch]\" -exec bash -c \'\n", dir_path);
+        /*
+		find . -name "*.[ch]" -exec bash -c '
+		  for file do
+		    # simboli trovati (uno per riga), senza duplicati
+		    grep -o -f functions_uniq "$file" | sort -u > "$file.syms" || { rm -f "$file.syms"; continue; }
+		
+		    # crea lo script sed
+		    awk -v p="samtools_htslib_" \
+		        "{print \"/#include/!s/[[:<:]]\" \$1 \"[[:>:]]/\" p \$1 \"/g\"}" "$file.syms" > regole.sed
+		
+		    # applica in modo sicuro (no -i con stdin)
+		    sed -f regole.sed "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+		
+		    rm -f "$file.syms" regole.sed "$file.tmp"
+		  done
+		' bash {} +
+		*/
+        fprintf(fp, "find %s -name \"*.[ch]\" -exec bash -c '\n", dir_path);
         fprintf(fp, "\tfor file do\n");
         fprintf(fp, "\t\tgrep -o -f %s \"$file\" | sort -u > \"$file.syms\"\n", functions_uniq_path);
         fprintf(fp, "\t\tawk -v p=\"%s_%s_\" \\ \n", author_dep, name_dep);
@@ -420,7 +428,7 @@ void find_dir(const char *path)
         fprintf(fp, "\t\tsed -f regole.sed \"$file\" > \"$file.tmp\" && mv \"$file.tmp\" \"$file\"\n");
         fprintf(fp, "\t\trm -f \"$file.syms\" regole.sed \"$file.tmp\"\n");
         fprintf(fp, "\tdone\n");
-        fprintf(fp, "\' bash {} +");
+        fprintf(fp, "' bash {} +");
         #endif
 
         fclose(fp);
