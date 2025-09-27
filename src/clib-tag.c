@@ -415,8 +415,8 @@ void find_dir(const char *path)
         fprintf(fp, "find %s -name \"*.[ch]\" -exec bash -c \'\n", dir_path);
         fprintf(fp, "\tfor file do\n");
         fprintf(fp, "\t\tgrep -o -f %s \"$file\" | sort -u > \"$file.syms\"\n", functions_uniq_path);
-        fprintf(fp, "\t\tawk -v p=\"%s_%s\" \\ \n", author_dep, name_dep);
-        fprintf(fp, "\t\t\"{print \"/#include/!s/[[:<:]]\\" \\$1 \\"[[:>:]]/\\" p \\$1 \\"/g\\"}\" \"$file.syms\" > regole.sed\n");
+        fprintf(fp, "\t\tawk -v p=\"%s_%s_\" \\ \n", author_dep, name_dep);
+        fprintf(fp, "\t\t\"{print \"/#include/!s/[[:<:]]\\\" \\$1 \\\"[[:>:]]/\\\" p \\$1 \\\"/g\\\"}\" \"$file.syms\" > regole.sed\n");
         fprintf(fp, "\t\tsed -f regole.sed \"$file\" > \"$file.tmp\" && mv \"$file.tmp\" \"$file\"\n");
         fprintf(fp, "\t\trm -f \"$file.syms\" regole.sed \"$file.tmp\"\n");
         fprintf(fp, "\tdone\n");
