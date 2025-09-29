@@ -406,7 +406,7 @@ void find_dir(const char *path)
         /*
 		find . -name "*.[ch]" -exec bash -c '
 		  for file do
-		    grep -o -f functions_uniq "$file" | sort -u > "$file.syms" || { rm -f "$file.syms"; continue; }
+		    grep -o -f functions_uniq "$file" | sort -u > "$file.syms"
 		    awk -v p="samtools_htslib_" \
 		        "{print \"/#include/!s/[[:<:]]\" \$1 \"[[:>:]]/\" p \$1 \"/g\"}" "$file.syms" > regole.sed
 		    sed -f regole.sed "$file" > "$file.tmp" && mv "$file.tmp" "$file"
